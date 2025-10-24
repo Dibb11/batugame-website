@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Chrome Dino — Batu Edition</title>
+<style>
+  :root{
+    --ground:#f7f7f7;
+    --dino:#222;
+    --batu:#555;
+    --sky-day:#f7f7f7;
+    --text:#222;
+  }
+  html,body{
+    height:100%;
+    margin:0;
+    background:var(--sky-day);
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .wrap{
+    width: 100%;
+    height: 100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+  }
+  .game {
+    width: 600px;
+    max-width:94vw;
+    height: 150px;
+    background: #fff;
+    border: 2px solid #888;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  }
+  .ground {
+    position:absolute;
+    left:0; right:0;
+    bottom: 0;
+    height: 20px;
+    background: #e8e8e8;
+  }
+  .dino {
+    width: 28px;
+    height: 28px;
+    position:absolute;
+    left: 40px;
+    bottom: 18px;
+  }
+  .dino .body{
+    width:100%;
+    height:100%;
+    background:var(--dino);
+    border-radius:3px;
+    position:relative;
+  }
+  .dino .head{
+    position:absolute;
+    width:16px; height:16px;
+    border-radius:3px;
+    background:var(--dino);
+    left:6px; top:-12px;
+  }
+  .dino .eye{
+    width:3px;height:3px;background:#fff;border-radius:1px;position:absolute;left:10px;top:4px;
+  }
+  .obstacle {
+    position:absolute;
+    bottom:20px;
+    background: var(--batu);
+    border-radius: 40% 45% 50% 50%;
+    box-shadow: inset -2px -2px 0 rgba(0,0,0,0.3);
+  }
+  .score {
+    position:absolute;
+    top:8px;
+    right:12px;
+    font-weight:bold;
+    color:var(--text);
+    user-select:none;
+    font-size:14px;
+  }
+  .highscore {
+    position:absolute;
+    top:8px;
+    left:12px;
+    font-size:12px;
+    color:#666;
+  }
+  .overlay {
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+  }
+  .msg {
+    pointer-events:auto;
+    background: rgba(255,255,255,0.95);
+    padding:12px 18px;
+    border-radius:6px;
+    text-align:center;
+    color:#111;
+  }
+  .controls {
+    margin-top: 12px;
+    display: flex;
+    gap: 10px;
+  }
+  button {
+    padding: 6px 14px;
+    font-size: 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #333;
+    color: white;
+    transition: 0.2s;
+  }
+  button:hover { background: #555; }
+
+  /* 🧩 Gabung input command + name */
+  .inputs {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .inputs input {
+    padding: 6px 10px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    text-align: center;
+  }
+
+  /* 🏆 Leaderboard */
+  .leaderboard {
+    margin-top: 20px;
+    width: 250px;
+    text-align: center;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    padding: 10px;
+  }
+  .leaderboard h3 {
+    margin: 0;
+    font-size: 16px;
+  }
+  .leaderboard ol {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0;
+  }
+  .leaderboard li {
+    font-size: 14px;
+    padding: 2px 0;
+    border-bottom: 1px solid #eee;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="game" class="game" tabindex="0">
+    <div class="highscore" id="highscore">HI SCORE: 0</div>
+    <div class="score" id="score">SCORE: 0</div>
+    <div id="dino" class="dino">
+      <div class="body"><div class="head"></div><div class="eye"></div></div>
+    </div>
+    <div id="ground" class="ground"></div>
+    <div id="overlay" class="overlay">
+      <div id="msg" class="msg">
+        <div id="startText">Press <strong>Space</strong> to start</div>
+        <div style="font-size:12px;color:#666;margin-top:8px">Use Space to jump • Press R to restart</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="restartBtn">🔁 Restart</button>
+    <button id="stopBtn">⏸ Stop</button>
+  </div>
+
+  <!-- 🧑‍💻 Gabungan input command + name -->
+  <div class="inputs">
+    <input id="command" type="text" placeholder="Enter 5-digit code" maxlength="5">
+    <input id="playerName" type="text" maxlength="10" placeholder="Enter your name">
+    <button id="saveNameBtn">Save</button>
+  </div>
+
+  <div class="leaderboard">
+    <h3>🏆 Leaderboard</h3>
+    <ol id="leaderList"></ol>
+  </div>
+</div>
+
+<script>
+(function(){
+  const gameEl = document.getElementById('game');
+  const dinoEl = document.getElementById('dino');
+  const overlay = document.getElementById('overlay');
+  const startText = document.getElementById('startText');
+  const scoreDisplay = document.getElementById('score');
+  const highscoreDisplay = document.getElementById('highscore');
+  const restartBtn = document.getElementById('restartBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const cmdInput = document.getElementById('command');
+  const leaderList = document.getElementById('leaderList');
+  const playerNameInput = document.getElementById('playerName');
+  const saveNameBtn = document.getElementById('saveNameBtn');
+
+  let lastTime = 0, rafId = null;
+  let running = false, gameOver = false, paused = false, godMode = false;
+  let score = 0, highScore = parseInt(localStorage.getItem('dino_high')||0,10) || 0;
+  let leaderboard = JSON.parse(localStorage.getItem('dino_leaderboard')||'[]');
+  highscoreDisplay.textContent = 'HI SCORE: ' + Math.floor(highScore);
+  renderLeaderboard();
+
+  let dino = { x:40, y:0, vy:0, groundedY:18 };
+  let GRAVITY = 0.9, JUMP_V = -10;
+  let obstacles = [], spawnTimer = 0, speed = 6;
+
+  function rand(min,max){ return Math.random()*(max-min)+min; }
+  function createObstacle(){
+    const el = document.createElement('div');
+    el.classList.add('obstacle');
+    const width = rand(15, 35), height = rand(10, 22);
+    el.style.width = width + 'px';
+    el.style.height = height + 'px';
+    el.style.right = '-40px';
+    el.style.bottom = dino.groundedY + 'px';
+    gameEl.appendChild(el);
+    return { el, x: gameEl.clientWidth };
+  }
+  function clearObstacles(){ obstacles.forEach(o=>o.el.remove()); obstacles=[]; }
+
+  function start(){
+    if(running) return;
+    running = true; paused = false; gameOver = false;
+    dino.y = 0; dino.vy = 0; score = 0; speed = 6; spawnTimer = 0;
+    clearObstacles(); overlay.style.display = 'none';
+    lastTime = performance.now();
+    rafId = requestAnimationFrame(loop);
+  }
+  function restart(){ cancelAnimationFrame(rafId); running=false; paused=false; start(); }
+  function stop(){
+    if(!running || gameOver) return;
+    paused = !paused;
+    if(paused){
+      cancelAnimationFrame(rafId);
+      overlay.style.display = '';
+      startText.innerHTML = '⏸ PAUSED<br><strong>Press Stop to Resume</strong>';
+      stopBtn.textContent = '▶ Resume';
+    } else {
+      overlay.style.display = 'none';
+      stopBtn.textContent = '⏸ Stop';
+      lastTime = performance.now();
+      rafId = requestAnimationFrame(loop);
+    }
+  }
+
+  function doGameOver(){
+    if(godMode) return;
+    running = false; gameOver = true;
+    overlay.style.display = '';
+    startText.innerHTML = 'GAME OVER<br><strong>Press R or Restart</strong>';
+
+    if(score > highScore){
+      highScore = Math.floor(score);
+      localStorage.setItem('dino_high', String(highScore));
+    }
+    highscoreDisplay.textContent = 'HI SCORE: ' + Math.floor(highScore);
+
+    if(isEligible(Math.floor(score))){
+      const name = playerNameInput.value.trim() || "Player";
+      saveToLeaderboard(name, Math.floor(score));
+    }
+  }
+
+  saveNameBtn.addEventListener('click', ()=> alert('✅ Nama disimpan!'));
+  playerNameInput.addEventListener('keydown', e=>{
+    if(e.key === 'Enter'){ e.preventDefault(); alert('✅ Nama disimpan!'); }
+  });
+
+  cmdInput.addEventListener('keydown', e=>{
+    if(e.key === 'Enter'){
+      const code = e.target.value.trim();
+      switch(code){
+        case '11111': godMode=!godMode; alert('🛡️ God Mode: '+(godMode?'ON':'OFF')); break;
+        case '22222': score+=1000; alert('💰 +1000 Score!'); break;
+        case '33333': speed=3; alert('🐢 Slow Motion Mode!'); break;
+        case '44444': speed=12; alert('⚡ Super Speed Mode!'); break;
+        case '55555': JUMP_V=-18; alert('🦘 High Jump Mode!'); break;
+        default: alert('❌ Kod tidak sah!');
+      }
+      e.target.value='';
+    }
+  });
+
+  function isEligible(s){ return leaderboard.length<5 || s>leaderboard[leaderboard.length-1].score; }
+  function saveToLeaderboard(name, s){
+    leaderboard.push({name,score:s});
+    leaderboard.sort((a,b)=>b.score-a.score);
+    leaderboard=leaderboard.slice(0,5);
+    localStorage.setItem('dino_leaderboard',JSON.stringify(leaderboard));
+    renderLeaderboard();
+  }
+  function renderLeaderboard(){
+    leaderList.innerHTML = leaderboard.length
+      ? leaderboard.map((p,i)=>`<li>${i+1}. ${p.name} — ${p.score}</li>`).join('')
+      : '<li>No scores yet</li>';
+  }
+
+  function collides(a,b){ return !(a.left>b.right||a.right<b.left||a.top>b.bottom||a.bottom<b.top); }
+  function loop(t){
+    if(!running||paused) return;
+    const dt=Math.max(0,t-lastTime); lastTime=t;
+    score+=dt*0.01; scoreDisplay.textContent='SCORE: '+Math.floor(score);
+    speed=6+Math.floor(score/1000);
+    spawnTimer+=dt;
+    if(spawnTimer>1000){ spawnTimer=0; const o=createObstacle(); o.speed=speed+rand(0,2); obstacles.push(o); }
+    for(let i=obstacles.length-1;i>=0;i--){
+      const o=obstacles[i]; o.x-=(o.speed||speed)*(dt/16.6667);
+      o.el.style.right=(gameEl.clientWidth-o.x)+'px';
+      if(o.x<-100){o.el.remove(); obstacles.splice(i,1); continue;}
+      if(!godMode && collides(dinoEl.getBoundingClientRect(),o.el.getBoundingClientRect())){ doGameOver(); return; }
+    }
+    if(dino.y>0||dino.vy!==0){ dino.vy+=0.9*(dt/16.6); dino.y+=dino.vy*(dt/16.6); if(dino.y>0){dino.y=0;dino.vy=0;} dinoEl.style.bottom=(dino.groundedY+dino.y)+'px'; }
+    rafId=requestAnimationFrame(loop);
+  }
+
+  document.addEventListener('keydown', e=>{
+    if(e.code==='Space'){ e.preventDefault(); if(!running){start();return;} if(dino.y===0&&!gameOver) dino.vy=JUMP_V; }
+    else if(e.key.toLowerCase()==='r'){ restart(); }
+  });
+  restartBtn.addEventListener('click', restart);
+  stopBtn.addEventListener('click', stop);
+  overlay.addEventListener('click', ()=>{ if(!running) start(); });
+})();
+</script>
+</body>
+</html>
+
+
+
+
