@@ -123,7 +123,7 @@
   }
   button:hover { background: #555; }
 
-  /* 🧩 Gabung input command + name */
+  /* 🧩 Input command + name + save */
   .inputs {
     margin-top: 10px;
     display: flex;
@@ -186,13 +186,15 @@
   <div class="controls">
     <button id="restartBtn">🔁 Restart</button>
     <button id="stopBtn">⏸ Stop</button>
+    <button id="jumpBtn">🦘 Jump</button>
   </div>
 
-  <!-- 🧑‍💻 Gabungan input command + name -->
+  <!-- 🧑‍💻 Input + Save + Name -->
   <div class="inputs">
     <input id="command" type="text" placeholder="Enter 5-digit code" maxlength="5">
+    <button id="saveCodeBtn">Save</button>
     <input id="playerName" type="text" maxlength="10" placeholder="Enter your name">
-    <button id="saveNameBtn">Save</button>
+    <button id="saveNameBtn">Save Name</button>
   </div>
 
   <div class="leaderboard">
@@ -211,7 +213,9 @@
   const highscoreDisplay = document.getElementById('highscore');
   const restartBtn = document.getElementById('restartBtn');
   const stopBtn = document.getElementById('stopBtn');
+  const jumpBtn = document.getElementById('jumpBtn');
   const cmdInput = document.getElementById('command');
+  const saveCodeBtn = document.getElementById('saveCodeBtn');
   const leaderList = document.getElementById('leaderList');
   const playerNameInput = document.getElementById('playerName');
   const saveNameBtn = document.getElementById('saveNameBtn');
@@ -285,24 +289,31 @@
   }
 
   saveNameBtn.addEventListener('click', ()=> alert('✅ Nama disimpan!'));
+  saveCodeBtn.addEventListener('click', ()=> processCode(cmdInput.value.trim()));
+  jumpBtn.addEventListener('click', ()=> jump());
+
   playerNameInput.addEventListener('keydown', e=>{
     if(e.key === 'Enter'){ e.preventDefault(); alert('✅ Nama disimpan!'); }
   });
 
   cmdInput.addEventListener('keydown', e=>{
     if(e.key === 'Enter'){
-      const code = e.target.value.trim();
-      switch(code){
-        case '11111': godMode=!godMode; alert('🛡️ God Mode: '+(godMode?'ON':'OFF')); break;
-        case '22222': score+=1000; alert('💰 +1000 Score!'); break;
-        case '33333': speed=3; alert('🐢 Slow Motion Mode!'); break;
-        case '44444': speed=12; alert('⚡ Super Speed Mode!'); break;
-        case '55555': JUMP_V=-18; alert('🦘 High Jump Mode!'); break;
-        default: alert('❌ Kod tidak sah!');
-      }
-      e.target.value='';
+      e.preventDefault();
+      processCode(e.target.value.trim());
     }
   });
+
+  function processCode(code){
+    switch(code){
+      case '11111': godMode=!godMode; alert('🛡️ God Mode: '+(godMode?'ON':'OFF')); break;
+      case '22222': score+=1000; alert('💰 +1000 Score!'); break;
+      case '33333': speed=3; alert('🐢 Slow Motion Mode!'); break;
+      case '44444': speed=12; alert('⚡ Super Speed Mode!'); break;
+      case '55555': JUMP_V=-18; alert('🦘 High Jump Mode!'); break;
+      default: alert('❌ Kod tidak sah!');
+    }
+    cmdInput.value='';
+  }
 
   function isEligible(s){ return leaderboard.length<5 || s>leaderboard[leaderboard.length-1].score; }
   function saveToLeaderboard(name, s){
@@ -336,8 +347,13 @@
     rafId=requestAnimationFrame(loop);
   }
 
+  function jump(){
+    if(!running){ start(); return; }
+    if(dino.y===0 && !gameOver) dino.vy=JUMP_V;
+  }
+
   document.addEventListener('keydown', e=>{
-    if(e.code==='Space'){ e.preventDefault(); if(!running){start();return;} if(dino.y===0&&!gameOver) dino.vy=JUMP_V; }
+    if(e.code==='Space'){ e.preventDefault(); jump(); }
     else if(e.key.toLowerCase()==='r'){ restart(); }
   });
   restartBtn.addEventListener('click', restart);
@@ -347,6 +363,9 @@
 </script>
 </body>
 </html>
+
+
+
 
 
 
